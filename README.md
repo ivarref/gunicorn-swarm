@@ -36,7 +36,8 @@ so the any connections made after workers have been shut down will simply be abo
     I  |        | heavy  |        |
     M  |        | request|        |
     E  | SIGINT |        |        |
-    |  |        | SIGINT |        |
+       |        | SIGINT |        |
+    |  |        | exit   |        |
     v  |        |        |        | ERROR: Connection is aborted
 
 
