@@ -2,7 +2,45 @@
 
 Try to run [Gunicorn](http://gunicorn.org/) as a [Docker swarm](https://docs.docker.com/engine/swarm/) service. 
 As far as I know this does not currently work correctly. 
+I had the exact same problem with [dockercloud/haproxy](https://github.com/docker/dockercloud-haproxy).
+The default `sync` worker process is used in the following.
+
+There seems to be two errors (in the form of race conditions) at play here.
+
 See details below for how to reproduce the issue:
+
+## Workers can exit before listening socket close
+
+During shutdown, it seems that workers may exit before the main process has closed
+the listening socket. This is because the worker process also receives and
+reacts to the SIGINT/SIGTERM with a `sys.exit(0)`.
+But the listening socket need not have been closed at this point, and
+so the any connections made after workers have been shut down will simply be aborted.
+
+       +--------+--------+--------+
+       | master | worker | user   |
+       +--------+--------+--------|
+    T  | SIGINT |        |        |
+    I  |        | SIGINT |        |
+    M  |        | exit   |        |
+    E  |        |        | CONNECT| New connection is made on socket and no worker to process it
+    |  | CLOSE  |        |        |
+    v  |        |        |        | ERROR: Connection is aborted
+
+## Workers will abort requests in the middle of processing 
+
+       +--------+--------+--------+
+       | master | worker | user   |
+       +--------+--------+--------|
+    T  |        |        | CONNECT|
+    I  |        | heavy  |        |
+    M  |        | request|        |
+    E  | SIGINT |        |        |
+    |  |        | SIGINT |        |
+    v  |        |        |        | ERROR: Connection is aborted
+
+
+## Reproducing the first scenario
 
     $ virtualenv venv
     
@@ -24,7 +62,7 @@ Then you should build and deploy a new server:
 
     $ ./redeploy_server.sh
 
-At this point hammer.py will probably crash with a stacktrace like this:
+At this point hammer.py will sometimes (fairly often) crash with a stacktrace like this:
 
     File "hammer.py", line 15, in <module>
         response = requests.get('http://localhost:8080/')

@@ -15,7 +15,7 @@ def get_app():
     app = Flask(__name__)
     r = str(uuid.uuid4())
     @app.route('/')
-    def show_ui():
+    def root():
         time.sleep(0.1 * random.random()) # do some work
         return r
     return app
