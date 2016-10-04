@@ -1,8 +1,8 @@
 # gunicorn-swarm
 
-Try to run [Gunicorn](http://gunicorn.org/) as a [Docker swarm](https://docs.docker.com/engine/swarm/) service. 
+Try to run [Gunicorn](http://gunicorn.org/) as a [Docker swarm service](https://docs.docker.com/engine/swarm/). 
 As far as I know this does not currently work correctly. 
-I had the exact same problem with [dockercloud/haproxy](https://github.com/docker/dockercloud-haproxy).
+I had the exact same problem using Gunicorn with [dockercloud/haproxy](https://github.com/docker/dockercloud-haproxy).
 The default `sync` worker process is used in the following.
 
 There seems to be two errors (in the form of race conditions) at play here.
@@ -24,8 +24,9 @@ so the any connections made after workers have been shut down will simply be abo
     I  |        | SIGINT |        |
     M  |        | exit   |        |
     E  |        |        | CONNECT| New connection is made on socket and no worker to process it
-    |  | CLOSE  |        |        |
-    v  |        |        |        | ERROR: Connection is aborted
+    |  | CLOSE  |        |        | Server socket is closed
+    v  |        |        |        |
+       | exit   |        |        | ERROR: Connection is aborted
 
 ## Workers will abort requests in the middle of processing 
 
@@ -38,7 +39,7 @@ so the any connections made after workers have been shut down will simply be abo
     E  | SIGINT |        |        |
        |        | SIGINT |        |
     |  |        | exit   |        |
-    v  |        |        |        | ERROR: Connection is aborted
+    v  | exit   |        |        | ERROR: Connection is aborted
 
 
 ## Reproducing the first scenario
