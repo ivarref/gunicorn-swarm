@@ -24,9 +24,9 @@ so the any connections made after workers have been shut down will simply be abo
     I  |        | SIGINT |        |
     M  |        | exit   |        |
     E  |        |        | CONNECT| New connection is made on socket and no worker to process it
-    |  | CLOSE  |        |        | Server socket is closed
-    v  |        |        |        |
-       | exit   |        |        | ERROR: Connection is aborted
+       | CLOSE  |        |        | Server socket is closed
+    |  |        |        |        |
+    v  | exit   |        |        | ERROR: Connection is aborted
 
 ## Workers will abort requests in the middle of processing 
 
