@@ -8,17 +8,21 @@ import time
 import random
 
 from gunicorn.app.base import BaseApplication
-from flask import Flask
 from gunicorn.six import iteritems
 
-def get_app():
-    app = Flask(__name__)
-    r = str(uuid.uuid4())
-    @app.route('/')
-    def root():
-        time.sleep(0.1 * random.random()) # do some work
-        return r
-    return app
+resp = str(uuid.uuid4())
+def handler_app(environ, start_response):
+    response_body = b'Works fine'
+    status = '200 OK'
+
+    response_headers = [
+        ('Content-Type', 'text/plain'),
+    ]
+
+    start_response(status, response_headers)
+    time.sleep(0.1 * random.random()) # do some work
+    global resp
+    return [resp]
 
 class StandaloneApplication(BaseApplication):
     def __init__(self, app, options=None):
@@ -35,7 +39,7 @@ class StandaloneApplication(BaseApplication):
 
 if __name__ == '__main__':
     options = {
-        'workers' : '4',
+        'workers' : '2',
         'bind' : '0.0.0.0:8080'
     }
-    StandaloneApplication(get_app(), options).run()
+    StandaloneApplication(handler_app, options).run()
